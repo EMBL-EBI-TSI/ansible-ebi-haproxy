@@ -1,0 +1,62 @@
+global
+    log     /dev/log local0
+    log     /dev/log local1 notice
+
+    chroot  /var/lib/haproxy
+    pidfile /var/run/haproxy.pid
+    maxconn 4000
+    user    haproxy
+    group   haproxy
+    daemon
+
+    {% if haproxy_stats|bool -%}
+    stats socket /var/lib/haproxy/stats mode 600 level admin
+    stats timeout 2m
+    {% endif %}
+
+defaults
+    mode                    http
+    log                     global
+    option                  httplog
+    option                  dontlognull
+    option http-server-close
+    option forwardfor       except 127.0.0.0/8
+    option                  redispatch
+    retries                 3
+    timeout http-request    10s
+    timeout queue           1m
+    timeout connect         10s
+    timeout client          1m
+    timeout server          1m
+    timeout http-keep-alive 10s
+    timeout check           10s
+    maxconn                 3000
+
+{% if haproxy_stats|bool %}
+frontend stats
+    bind  {{haproxy_stats_bind_address}}:{{haproxy_stats_bind_port}} {{haproxy_stats_bind_params}}
+    stats enable
+    stats hide-version
+    stats uri /
+    stats refresh 10s
+    stats auth {{haproxy_stats_user}}:{{haproxy_stats_password}}
+{% endif %}
+
+frontend {{haproxy_frontend_name}}
+    bind            {{haproxy_frontend_bind_address}}:{{haproxy_frontend_bind_port}} {{haproxy_frontend_bind_params}}
+    default_backend {{haproxy_backend_name}}
+
+backend {{haproxy_backend_name}}
+    balance         {{haproxy_backend_balance}}
+    {% if haproxy_backend_cookie != none -%}
+    cookie          {{haproxy_backend_cookie}} insert indirect nocache
+    {% endif -%}
+    {% if haproxy_backend_httpchk != none -%}
+    option httpchk  {{haproxy_backend_httpchk}}
+    {% endif -%}
+    {% if haproxy_backend_httpchk_expect != none -%}
+    http-check expect {{haproxy_backend_httpchk_expect}}
+    {% endif -%}
+    {% for server in haproxy_backend_servers_list -%}
+    server          {{hostvars[server].ansible_hostname}} {{hostvars[server].ansible_fqdn}}:{{haproxy_backend_servers_port}} {% if haproxy_backend_cookie != none %}cookie {{hostvars[server].ansible_hostname}}{% endif %} {{haproxy_backend_servers_params}}
+    {% endfor %}

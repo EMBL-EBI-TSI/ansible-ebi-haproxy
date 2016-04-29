@@ -1,0 +1,22 @@
+---
+haproxy_stats: no
+haproxy_stats_bind_address: 0.0.0.0
+haproxy_stats_bind_port: 80
+haproxy_stats_bind_params: ''
+haproxy_stats_user: haproxy
+haproxy_stats_password: password
+
+haproxy_frontend_name: main
+haproxy_frontend_bind_address: 0.0.0.0
+haproxy_frontend_bind_port: 80
+haproxy_frontend_bind_params: ''
+
+haproxy_backend_name: app
+haproxy_backend_balance: roundrobin
+haproxy_backend_servers_list: []
+haproxy_backend_servers_port: 80
+haproxy_backend_servers_params: check
+haproxy_backend_cookie: SERVERNAME
+haproxy_backend_httpchk:
+haproxy_backend_httpchk_expect:
+
