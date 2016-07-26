@@ -1,8 +1,6 @@
 ---
 - name: Install
-  yum: name={{item}} state=present
-  with_items:
-    - haproxy
+  yum: name=haproxy state=present
 
 - name: Configure
   template: dest=/etc/haproxy/haproxy.cfg src=haproxy.cfg.j2 mode=0644
