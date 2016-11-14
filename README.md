@@ -25,6 +25,7 @@ Example:
 
 TODO
 ----
+- Document usage.
 
 Licence
 -------
