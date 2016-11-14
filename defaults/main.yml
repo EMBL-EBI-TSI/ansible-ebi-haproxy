@@ -25,3 +25,8 @@ haproxy_http_backends:
 haproxy_tcp_listens: []
   # Combines frontends and backends (see above available settings)
 
+haproxy_packages:
+  - haproxy
+  - socat
+  - tcpdump
+  - strace
