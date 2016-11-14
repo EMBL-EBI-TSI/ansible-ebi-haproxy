@@ -1,7 +1,7 @@
 ---
 haproxy_stats: no
 haproxy_stats_bind_address: 0.0.0.0
-haproxy_stats_bind_port: 80
+haproxy_stats_bind_port: 81
 haproxy_stats_bind_params: ''
 haproxy_stats_user: haproxy
 haproxy_stats_password: password
