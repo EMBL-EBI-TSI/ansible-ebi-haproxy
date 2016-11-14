@@ -9,30 +9,82 @@ global
     group   haproxy
     daemon
 
-    {% if haproxy_stats|bool -%}
+    {% if haproxy_stats | bool -%}
     stats socket /var/lib/haproxy/stats mode 600 level admin
     stats timeout 2m
     {% endif %}
 
-defaults
-    mode                    http
-    log                     global
-    option                  httplog
-    option                  dontlognull
-    option http-server-close
-    option forwardfor       except 127.0.0.0/8
-    option                  redispatch
-    retries                 3
-    timeout http-request    10s
-    timeout queue           1m
-    timeout connect         10s
-    timeout client          1m
-    timeout server          1m
-    timeout http-keep-alive 10s
-    timeout check           10s
-    maxconn                 3000
+defaults main-defaults
+    balance roundrobin
+    log     global
+    maxconn 3000
+    option  dontlognull
+    option  redispatch
+    retries 3
+    timeout queue 1m
+    timeout connect 10s
+    timeout client 1m
+    timeout server 1m
+    timeout check 10s
 
-{% if haproxy_stats|bool %}
+#
+# TCP Proxies
+#
+
+defaults tcp-defaults
+    # Note main-defaults are still active at this stage
+    mode    tcp
+    option  tcplog
+    option  tcpka
+
+{% for proxy in haproxy_tcp_listens %}
+listen {{proxy.name}}
+    bind {{proxy.bind}}
+{% for config in proxy.config %}
+    {{config}}
+{% endfor %}
+{% for server in proxy.servers %}
+    server {{hostvars[server].ansible_hostname}} {{hostvars[server].ansible_default_ipv4.address}}:{{proxy.servers_options.port}} {% if proxy.servers_options.cookie | default(false) %}cookie {{hostvars[server].ansible_hostname}}{% endif %} {{proxy.servers_options.params | default('')}}
+{% endfor %}
+{% endfor %}
+
+#
+# HTTP Proxies
+#
+
+defaults http-defaults
+    # Note main-defaults and tcp-defaults are still active at this stage
+    mode    http
+    option  httplog
+    option  http-server-close
+    option  forwardfor except 127.0.0.0/8
+    timeout http-request 10s
+    timeout http-keep-alive 10s
+
+{% for proxy in haproxy_http_frontends %}
+frontend {{proxy.name}}
+    bind {{proxy.bind}}
+{% for config in proxy.config %}
+    {{config}}
+{% endfor %}
+{% endfor %}
+
+
+{% for proxy in haproxy_http_backends %}
+backend {{proxy.name}}
+{% for config in proxy.config %}
+    {{config}}
+{% endfor %}
+{% for server in proxy.servers %}
+    server {{hostvars[server].ansible_hostname}} {{hostvars[server].ansible_default_ipv4.address}}:{{proxy.servers_options.port}} {% if proxy.servers_options.cookie | default(false) %}cookie {{hostvars[server].ansible_hostname}}{% endif %} {{proxy.servers_options.params | default('')}}
+{% endfor %}
+{% endfor %}
+
+#
+# Stats
+#
+
+{% if haproxy_stats | bool %}
 frontend stats
     bind  {{haproxy_stats_bind_address}}:{{haproxy_stats_bind_port}} {{haproxy_stats_bind_params}}
     stats enable
@@ -41,22 +93,3 @@ frontend stats
     stats refresh 10s
     stats auth {{haproxy_stats_user}}:{{haproxy_stats_password}}
 {% endif %}
-
-frontend {{haproxy_frontend_name}}
-    bind            {{haproxy_frontend_bind_address}}:{{haproxy_frontend_bind_port}} {{haproxy_frontend_bind_params}}
-    default_backend {{haproxy_backend_name}}
-
-backend {{haproxy_backend_name}}
-    balance         {{haproxy_backend_balance}}
-    {% if haproxy_backend_cookie != none -%}
-    cookie          {{haproxy_backend_cookie}} insert indirect nocache
-    {% endif -%}
-    {% if haproxy_backend_httpchk != none -%}
-    option httpchk  {{haproxy_backend_httpchk}}
-    {% endif -%}
-    {% if haproxy_backend_httpchk_expect != none -%}
-    http-check expect {{haproxy_backend_httpchk_expect}}
-    {% endif -%}
-    {% for server in haproxy_backend_servers_list -%}
-    server          {{hostvars[server].ansible_hostname}} {{hostvars[server].ansible_fqdn}}:{{haproxy_backend_servers_port}} {% if haproxy_backend_cookie != none %}cookie {{hostvars[server].ansible_hostname}}{% endif %} {{haproxy_backend_servers_params}}
-    {% endfor %}
