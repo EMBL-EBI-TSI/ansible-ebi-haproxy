@@ -1,6 +1,6 @@
 HAProxy
 =======
-Install and configure haproxy server.
+Install and configure HAProxy server.
 
 Requirements
 ------------
@@ -12,7 +12,7 @@ See `default/main.yml`.
 
 Dependencies
 ------------
-None.
+Depends on a role that provides SSL certs if HAProxy is the SSL endpoint, ie `ansible-role-ssl-certs`.
 
 Example Playbook
 ----------------
@@ -20,12 +20,13 @@ Example:
 ```
 - hosts: servers
   roles:
+    - ansible-role-ssl-certs
     - haproxy
 ```
 
 TODO
 ----
-- Document usage.
+None.
 
 Licence
 -------
@@ -33,4 +34,7 @@ Licensed under [CC-BY-SA 4.0](https://creativecommons.org/licenses/by-sa/4.0/).
 
 Author Information
 ------------------
-Luis Gracia <luis.gracia@ebi.ac.uk>
+Luis Gracia while at [EMBL-EBI](http://www.ebi.ac.uk/):
+- luis.gracia [at] ebi.ac.uk
+- GitHub at [luisico](https://github.com/luisico)
+- Galaxy at [luisico](https://galaxy.ansible.com/luisico)
